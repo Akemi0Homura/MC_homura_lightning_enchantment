@@ -2,6 +2,7 @@ package com.homura.lightning.core;
 
 
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
@@ -25,30 +26,39 @@ public class Attack {
      */
     @SubscribeEvent
     public static void onAttack(LivingHurtEvent event) {
-        LivingEntity target = event.getEntity();  // 直接获取，无需 instanceof 判断
+        //只在服务器执行
+        if (event.getEntity().level().isClientSide) return;
+
         DamageSource source = event.getSource();
+        //伤害来源
+        Entity src = source.getEntity();
+        if (!(src instanceof LivingEntity attacker)) return;
 
-        // 检查攻击者是否为活的生物（包括玩家、狼、铁傀儡等）
-        LivingEntity attacker = (LivingEntity) source.getEntity();
-        if (attacker == null) return;
+        //伤害来源的主兽物品
+        ItemStack weapon = attacker.getMainHandItem();
+        //获取附魔等级
+        int level = weapon.getEnchantmentLevel(Enroll.LIGHHTNING.get());
+        //检查有没有附魔
+        if (level <= 0) return;
 
-        // 检查攻击者主手是否有附魔（生物装备武器时生效）
-        ItemStack stack = attacker.getMainHandItem();
-        // 替换为你的实际附魔注册名（之前有拼写错误 LIGHHTNING）
-        if (stack.getEnchantmentLevel(Enroll.LIGHHTNING.get()) <= 0) return;
+        //获取触发目标
+        LivingEntity target = event.getEntity();
+        Level levelWorld = target.level();
 
-        Level level = target.level();
-
-        // 生成纯视觉闪电
-        LightningBolt lightning = new LightningBolt(EntityType.LIGHTNING_BOLT, level);
-        lightning.moveTo(target.getX(), target.getY() + (target.getBbHeight() / 2.0), target.getZ());
-        lightning.setVisualOnly(true);
-        level.addFreshEntity(lightning);
-
-        // 直接增加最终伤害：原伤害（已计算护甲等） + 闪电额外伤害
-        event.setAmount(event.getAmount() + 3.0F);
-
-        // 点燃目标
+        //生成闪电实体
+        LightningBolt lightning = EntityType.LIGHTNING_BOLT.create(levelWorld);
+        if (lightning != null) {
+            //生成位置
+            lightning.moveTo(target.position());
+            //视觉闪电
+            lightning.setVisualOnly(true);
+            //服务器执行
+            levelWorld.addFreshEntity(lightning);
+        }
+        //附带伤害，受等级影响
+        event.setAmount(event.getAmount() + 1.0F * level);
+        //点燃目标
         target.setSecondsOnFire(1);
     }
 }
+
