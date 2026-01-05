@@ -31,19 +31,27 @@ public class Book extends Enchantment {
 
     //附魔台最低等级
     @Override
-    public int getMinCost(int p_44679_) {
-        return 30;
+    public int getMinCost(int level) {
+        return switch (level) {
+            case 1 -> 15;
+            case 2 -> 30;
+            case 3 -> 45;
+            case 4 -> 60;
+            case 5 -> 75;
+            default -> 90;
+        };
     }
 
     //附魔台最高等级
     @Override
-    public int getMaxCost(int p_44691_) {
-        return 30;
+    public int getMaxCost(int level) {
+        return getMinCost(level) + 15;
     }
 
     //最高等级
     @Override
     public int getMaxLevel() {
-        return 1;
+        return 5;
     }
 }
+
